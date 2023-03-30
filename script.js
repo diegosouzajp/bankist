@@ -55,7 +55,7 @@ const labelBalance = document.querySelector('.balance__value');
 const labelSumIn = document.querySelector('.summary__value--in');
 const labelSumOut = document.querySelector('.summary__value--out');
 const labelSumInterest = document.querySelector('.summary__value--interest');
-const labelTimer = document.querySelector('.timer');
+const labelTimer = document.querySelector('.logout-timer');
 
 const containerApp = document.querySelector('.app');
 const containerMovements = document.querySelector('.movements');
@@ -75,7 +75,7 @@ const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
 // Event handler
-let currentAccount;
+let currentAccount, timer;
 
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
@@ -167,13 +167,13 @@ function updateUI() {
   inputTransferAmount.value = inputTransferTo.value = '';
   inputLoanAmount.value = '';
   inputCloseUsername.value = inputClosePin.value = '';
-  // Display movements
-  displayMovements(currentAccount.movements);
-  // Display balance
+  labelTimer.textContent = '';
+
+  setLogoutTimer(300);
   calcDisplayBalance(currentAccount);
-  // Display summary
+  displayMovements(currentAccount.movements);
   calcDisplaySummary(currentAccount);
-  // Set current date
+
   labelDate.textContent = `${new Date().toLocaleDateString(
     currentAccount.locale
   )} ${new Date().toLocaleTimeString(currentAccount.locale, {
@@ -245,12 +245,16 @@ btnLoan.addEventListener('click', function (e) {
   if (
     amount > 0 &&
     currentAccount.movements.some(mov => mov.value >= amount * 0.1)
-  )
-    currentAccount.movements.push({
-      value: amount,
-      time: new Date().toISOString(),
-    });
-  updateUI();
+  ) {
+    inputLoanAmount.value = '';
+    setTimeout(function () {
+      currentAccount.movements.push({
+        value: amount,
+        time: new Date().toISOString(),
+      });
+      updateUI();
+    }, 5000);
+  }
 });
 
 btnClose.addEventListener('click', function (e) {
@@ -279,4 +283,31 @@ btnSort.addEventListener('click', function (e) {
   e.preventDefault();
   displayMovements(currentAccount.movements, !sorted);
   sorted = !sorted;
+  setLogoutTimer(300);
 });
+
+function logoutTimer(time) {
+  function ticker() {
+    if (time >= 0) {
+      const min = `${Math.floor(time / 60)}`.padStart(2, '0');
+      const sec = `${time % 60}`.padStart(2, '0');
+      const html = `You will be logged out in <span class="timer">${min}:${sec}</span>`;
+      labelTimer.innerHTML = html;
+      time--;
+    } else {
+      clearInterval(timer);
+      containerApp.style.opacity = 0;
+      currentAccount = '';
+      labelWelcome.textContent = 'Log in to get started';
+    }
+  }
+
+  ticker();
+  const timer = setInterval(ticker, 1000);
+  return timer;
+}
+
+function setLogoutTimer(time) {
+  if (timer) clearInterval(timer);
+  timer = logoutTimer(time);
+}
